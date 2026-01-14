@@ -25,10 +25,26 @@ def vicreg_loss(z1, z2, sim_coeff=25.0, std_coeff=25.0, cov_coeff=1.0, gamma=1, 
     std2_loss = torch.mean(F.relu(gamma - std2))
 
     variance_loss = (std1_loss + std2_loss) / 2
-    
-    pass
 
+    # COVARIANCE LOSS
+    cov1 = covariance(z1)
+    cov2 = covariance(z2)
+
+    cov1_loss = (cov1.pow(2).sum() - cov1.diagonal().pow(2).sum()) / z1.size(1)
+    cov2_loss = (cov2.pow(2).sum() - cov2.diagonal  ().pow(2).sum()) / z2.size(1)
+
+    covariance_loss = (cov1_loss + cov2_loss) / 2
+
+    # TOTAL VICREG LOSS
+    total_loss = (sim_coeff * invariance_loss) + (std_coeff * variance_loss) + (cov_coeff * covariance_loss)
+    return total_loss
 
 def regularized_std(z, espilon=1e-4):
     std = torch.sqrt(z.var(dim=0) + espilon)
     return std
+
+def covariance(z):
+    N, _ = z.size()
+    z_unbiased = z - z.mean(dim=0)
+    cov = (z_unbiased.T @ z_unbiased) / (N - 1)
+    return cov
