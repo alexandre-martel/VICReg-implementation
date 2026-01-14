@@ -78,10 +78,8 @@ for epoch in range(1, 21):
         if batch_idx % 100 == 0:
             print(f"Epoch {epoch} | Batch {batch_idx}/{len(train_loader)} | Loss: {loss_val:.4f}")
     
-    print(f"==> Epoch {epoch} terminée. Loss moyenne: {total_loss/len(train_loader):.4f}")
-
+    print(f"==> Epoch {epoch} finished. Loss moyenne: {total_loss/len(train_loader):.4f}")
+    
 print("Training completed.")
 
-
-print("Evaluation")
 evaluate(model, train_loader_labels, test_loader, device)

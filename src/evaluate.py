@@ -1,19 +1,20 @@
 import torch
 import torch.nn as nn
-from torch.utils.data import DataLoader
 
 def evaluate(model, train_loader_labels, test_loader, device):
-    print("\n--- Phase d'évaluation : Entraînement du classifieur linéaire ---")
+    print("\n--- Evaluation ---")
     model.backbone.eval()
     for param in model.backbone.parameters():
-        param.requires_grad = False # On gèle le ResNet
+        param.requires_grad = False # freeze ResNet
     
-    # Simple couche linéaire : 512 caractéristiques en entrée -> 10 classes en sortie
+    # Simple classifier : 512 features in input -> 10 classes in output
     classifier = nn.Linear(512, 10).to(device)
     optim_eval = torch.optim.Adam(classifier.parameters(), lr=1e-3)
     criterion = nn.CrossEntropyLoss()
 
-    for e in range(5): # 5 époques suffisent pour le classifieur
+    for e in range(5): # 5 epochs are enough for the classifier
+        # NOTE: We train only the classifier here, the backbone is frozen. The classifier is small because the 
+        # VICReg model should have learned good representations, so it shouldn't need much capacity to classify.
         for imgs, labels in train_loader_labels:
             imgs, labels = imgs.to(device), labels.to(device)
             with torch.no_grad():
@@ -24,9 +25,9 @@ def evaluate(model, train_loader_labels, test_loader, device):
             optim_eval.zero_grad()
             loss.backward()
             optim_eval.step()
-        print(f"Époque d'évaluation {e+1}/5 complétée.")
+        print(f"Evaluation epoch {e+1}/5 completed.")
 
-    # Calcul de la précision finale
+    # Final accuracy
     correct, total = 0, 0
     classifier.eval()
     with torch.no_grad():
@@ -37,7 +38,5 @@ def evaluate(model, train_loader_labels, test_loader, device):
             correct += (preds == labels).sum().item()
             total += labels.size(0)
     
-    print(f"\nPrécision finale sur CIFAR-10 : {100 * correct / total:.2f}%")
+    print(f"\nFinal accuracy on CIFAR-10: {100 * correct / total:.2f}%")
 
-# Lancer l'évaluation
-evaluate(model, train_loader_labels, test_loader)
