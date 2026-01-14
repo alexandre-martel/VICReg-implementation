@@ -1,0 +1,3 @@
+# VICReg implementation
+
+Alexandre MARTEL
