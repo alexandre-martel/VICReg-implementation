@@ -9,6 +9,7 @@ import torchvision.transforms as transforms
 from src.TwoViewTransformClass import TwoViewsTransform
 from src.VICRegModelClass import VICRegModel
 from src.VICRegLoss import vicreg_loss
+from src.evaluate import evaluate
 
 # DATA DOWNLOAD AND PREPARATION
 
@@ -35,9 +36,21 @@ test_dataset = torchvision.datasets.CIFAR10( # With labels for evaluation
     ])
 )
 
+train_dataset_labels = torchvision.datasets.CIFAR10( # SMall classifier to evaluate learned representations
+    root='./data', train=True, download=True,
+    transform=transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
+    ])
+)
+
 train_loader = DataLoader(train_dataset_vicreg, batch_size=128, shuffle=True) # 128 to have at least 10 images of each class in a batch
+train_loader_labels = DataLoader(train_dataset_labels, batch_size=128, shuffle=True)
 test_loader = DataLoader(test_dataset, batch_size=128, shuffle=False)
 
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+model = VICRegModel().to(device)
+optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
 
 # TRAINING
 def train_step(images_views):
@@ -52,7 +65,23 @@ def train_step(images_views):
     optimizer.step()
     return loss.item()
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model = VICRegModel().to(device)
-optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
+print(f"Start VICReg Training in {device}...")
+model.train()
 
+for epoch in range(1, 21): 
+    total_loss = 0
+    for batch_idx, (images_views, _) in enumerate(train_loader):
+        # images_views contains [view_1, view_2] 
+        loss_val = train_step(images_views)
+        total_loss += loss_val
+        
+        if batch_idx % 100 == 0:
+            print(f"Epoch {epoch} | Batch {batch_idx}/{len(train_loader)} | Loss: {loss_val:.4f}")
+    
+    print(f"==> Epoch {epoch} terminée. Loss moyenne: {total_loss/len(train_loader):.4f}")
+
+print("Training completed.")
+
+
+print("Evaluation")
+evaluate(model, train_loader_labels, test_loader, device)
