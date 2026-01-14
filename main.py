@@ -11,6 +11,8 @@ from src.VICRegModelClass import VICRegModel
 from src.VICRegLoss import vicreg_loss
 from src.evaluate import evaluate
 
+DO_WE_SAVE = True # If True, the trained model will be saved after training
+
 # DATA DOWNLOAD AND PREPARATION
 
 # We define small transformations for CIFAR in order to create two different (but similar) views of the same image.
@@ -79,7 +81,11 @@ for epoch in range(1, 21):
             print(f"Epoch {epoch} | Batch {batch_idx}/{len(train_loader)} | Loss: {loss_val:.4f}")
     
     print(f"==> Epoch {epoch} finished. Loss moyenne: {total_loss/len(train_loader):.4f}")
-    
+
 print("Training completed.")
+
+if DO_WE_SAVE:
+    torch.save(model.backbone.state_dict(), "models/vicreg_resnet18_backbone.pth")
+    print("Model saved successfully in 'models/vicreg_resnet18_backbone.pth'")
 
 evaluate(model, train_loader_labels, test_loader, device)
