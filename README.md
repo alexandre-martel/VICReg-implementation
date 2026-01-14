@@ -1,6 +1,6 @@
 # VICReg implementation
 
-This repository contains a PyTorch implementation of **VICReg** (Variance-Invariance-Covariance Regularization), as described in the paper by [Bardes et al](https://arxiv.org/pdf/2105.04906).
+This repository contains a PyTorch implementation of VICReg (Variance-Invariance-Covariance Regularization), as described in the paper by [Bardes et al](https://arxiv.org/pdf/2105.04906).
 
 ## Overview
 
@@ -29,6 +29,57 @@ The implementation uses:
 
 ```bash
 pip install -r requirements.txt
+```
 
-```python
-python main.py
+## Usage
+
+The script `main.py` supports four different modes:
+
+### Training from scratch
+
+Train a new ResNet-18 with VICReg on CIFAR-10.
+
+```bash
+python main.py TRAIN --epochs 20 --batch_size 128 --name my_model.pth
+```
+
+### Re-training
+
+Resume training on an existing model.
+
+```bash
+python main.py RE_TRAIN --model_path models/my_model.pth --epochs 10 --name my_model_v2.pth
+```
+
+### Evaluation 
+
+Freeze the backbone and train a linear layer to check classification accuracy.
+
+```bash
+python main.py EVALUATE --model_path models/my_model.pth
+```
+
+### Inference
+
+Extract a feature vector from a single batch of images for testing.
+
+```bash
+python main.py INFERENCE --model_path models/my_model.pth
+```
+
+## Arguments
+
+| Argument | Description | Default |
+| :--- | :--- | :--- |
+| `mode` | `TRAIN`, `RE_TRAIN`, `EVALUATE`, or `INFERENCE` | (Required) |
+| `--epochs` | Number of training epochs | `20` |
+| `--batch_size` | Size of the data batches | `128` |
+| `--model_path` | Path to a `.pth` file (required for RE_TRAIN, EVAL, INF) | `None` |
+| `--name` | Filename for saving the model (saved in `models/`) | `vicreg_model.pth` |
+
+## References
+
+Bardes, A., Ponce, J., & LeCun, Y. (2021). VICReg: Variance-Invariance-Covariance Regularization for Self-Supervised Learning.
+
+
+

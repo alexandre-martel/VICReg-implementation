@@ -3,7 +3,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 import torchvision
+import os
 import torchvision.transforms as transforms
+import argparse
 
 
 from src.TwoViewTransformClass import TwoViewsTransform
@@ -11,7 +13,14 @@ from src.VICRegModelClass import VICRegModel
 from src.VICRegLoss import vicreg_loss
 from src.evaluate import evaluate
 
-DO_WE_SAVE = True # If True, the trained model will be saved after training
+parser = argparse.ArgumentParser(description="VICReg Training and Evaluation")
+parser.add_argument("mode", choices=["TRAIN", "RE_TRAIN", "EVALUATE", "INFERENCE"], help="Execution mode")
+parser.add_argument("--epochs", type=int, default=20, help="epoch number for training")
+parser.add_argument("--batch_size", type=int, default=128, help="batch size")
+parser.add_argument("--model_path", type=str, help="path to the .pth model (required for RE_TRAIN, EVAL, INF)")
+parser.add_argument("--name", type=str, default="vicreg_model.pth", help="model save name (for TRAIN and RE_TRAIN modes)")
+args = parser.parse_args()
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # DATA DOWNLOAD AND PREPARATION
 
@@ -46,13 +55,22 @@ train_dataset_labels = torchvision.datasets.CIFAR10( # SMall classifier to evalu
     ])
 )
 
-train_loader = DataLoader(train_dataset_vicreg, batch_size=128, shuffle=True) # 128 to have at least 10 images of each class in a batch
-train_loader_labels = DataLoader(train_dataset_labels, batch_size=128, shuffle=True)
-test_loader = DataLoader(test_dataset, batch_size=128, shuffle=False)
+train_loader = DataLoader(train_dataset_vicreg, batch_size=args.batch_size, shuffle=True) # 128 to have at least 10 images of each class in a batch
+train_loader_labels = DataLoader(train_dataset_labels, batch_size=args.batch_size, shuffle=True)
+test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False)
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model = VICRegModel().to(device)
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
+
+if args.mode in ["RE_TRAIN", "EVALUATE", "INFERENCE"]:
+    if not args.model_path:
+        raise ValueError(f"The mode {args.mode} requires --model_path")
+    
+    # Load the weights into the backbone
+    state_dict = torch.load(args.model_path, map_location=device)
+    model.backbone.load_state_dict(state_dict)
+    print(f"Model loaded from {args.model_path}")
 
 # TRAINING
 def train_step(images_views):
@@ -67,25 +85,36 @@ def train_step(images_views):
     optimizer.step()
     return loss.item()
 
-print(f"Start VICReg Training in {device}...")
-model.train()
+#  MODE TRAIN, RE_TRAIN
+if args.mode in ["TRAIN", "RE_TRAIN"]:
+    print(f"Start VICReg Training ({args.mode}) for {args.epochs} epochs...")
+    loss_val = []
+    model.train()
+    for epoch in range(1, args.epochs + 1):
+        total_loss = 0
+        for batch_idx, (images_views, _) in enumerate(train_loader):
+            loss_val = train_step(images_views)
+            total_loss += loss_val
+            if batch_idx % 100 == 0:
+                print(f"Epoch {epoch} | Batch {batch_idx}/{len(train_loader)} | Loss: {loss_val:.4f}")
+        loss_val.append(loss_val)
+        print(f"==> Epoch {epoch} finished. mean loss: {total_loss/len(train_loader):.4f}")
 
-for epoch in range(1, 21): 
-    total_loss = 0
-    for batch_idx, (images_views, _) in enumerate(train_loader):
-        # images_views contains [view_1, view_2] 
-        loss_val = train_step(images_views)
-        total_loss += loss_val
-        
-        if batch_idx % 100 == 0:
-            print(f"Epoch {epoch} | Batch {batch_idx}/{len(train_loader)} | Loss: {loss_val:.4f}")
-    
-    print(f"==> Epoch {epoch} finished. Loss moyenne: {total_loss/len(train_loader):.4f}")
 
-print("Training completed.")
+    os.makedirs("models", exist_ok=True)
+    save_path = os.path.join("models", args.name)
+    torch.save(model.backbone.state_dict(), save_path)
+    print(f"Model saved in {save_path}")
 
-if DO_WE_SAVE:
-    torch.save(model.backbone.state_dict(), "models/vicreg_resnet18_backbone.pth")
-    print("Model saved successfully in 'models/vicreg_resnet18_backbone.pth'")
+# --- MODE EVALUATE ---
+if args.mode == "EVALUATE":
+    evaluate(model, train_loader_labels, test_loader, device)
 
-evaluate(model, train_loader_labels, test_loader, device)
+# --- MODE INFERENCE ---
+elif args.mode == "INFERENCE":
+    model.eval()
+    # On prend une image du test_loader pour l'exemple
+    img, _ = next(iter(test_loader))
+    with torch.no_grad():
+        feature_vector = model.backbone(img[0:1].to(device))
+    print(f"Inférence réussie. Taille du vecteur de caractéristiques : {feature_vector.shape}")
