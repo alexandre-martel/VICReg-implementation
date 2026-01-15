@@ -56,7 +56,7 @@ python main.py RE_TRAIN --model_path models/my_model.pth --epochs 10 --name my_m
 Freeze the backbone and train a linear layer to check classification accuracy.
 
 ```bash
-python main.py EVALUATE --model_path models/my_model.pth
+python main.py EVALUATE --model_path model/my_model.pth
 ```
 
 ### Inference
