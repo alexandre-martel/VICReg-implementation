@@ -77,6 +77,13 @@ python main.py INFERENCE --model_path models/my_model.pth
 | `--model_path` | Path to a `.pth` file (required for RE_TRAIN, EVAL, INF) | `None` |
 | `--name` | Filename for saving the model (saved in `models/`) | `vicreg_model.pth` |
 
+## First results
+
+I did a small test for a 20 epochs training (I do not have any more powerful GPU), plus a 5 epoch classifier head for evalutation and reached final accuracy on CIFAR-10: 58.70%. This accuracy is objectively bad, but we have to remember that I did a very small training (30 minutes) and that the main goal 
+
+![Evolution of VICReg loss](vicreg_loss.png)
+
+
 ## References
 
 Bardes, A., Ponce, J., & LeCun, Y. (2021). VICReg: Variance-Invariance-Covariance Regularization for Self-Supervised Learning.
