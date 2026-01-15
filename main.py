@@ -6,6 +6,7 @@ import torchvision
 import os
 import torchvision.transforms as transforms
 import argparse
+import matplotlib.pyplot as plt
 
 
 from src.TwoViewTransformClass import TwoViewsTransform
@@ -106,15 +107,24 @@ if args.mode in ["TRAIN", "RE_TRAIN"]:
     torch.save(model.backbone.state_dict(), save_path)
     print(f"Model saved in {save_path}")
 
-# --- MODE EVALUATE ---
+    # Display loss curve
+    plt.plot(range(1, len(loss_val) + 1), loss_val)
+    plt.xlabel("Epochs")
+    plt.ylabel("VICReg Loss")
+    plt.title("VICReg Training Loss Curve")
+    plt.show()
+
+
+# MODE EVALUATE
 if args.mode == "EVALUATE":
     evaluate(model, train_loader_labels, test_loader, device)
 
-# --- MODE INFERENCE ---
+# MODE INFERENCE
 elif args.mode == "INFERENCE":
     model.eval()
-    # On prend une image du test_loader pour l'exemple
+
     img, _ = next(iter(test_loader))
     with torch.no_grad():
         feature_vector = model.backbone(img[0:1].to(device))
-    print(f"Inférence réussie. Taille du vecteur de caractéristiques : {feature_vector.shape}")
+    print(f"Inference success : {feature_vector.shape}")
+
