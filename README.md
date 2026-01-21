@@ -79,7 +79,8 @@ python main.py INFERENCE --model_path models/my_model.pth
 
 ## First results
 
-I did a small test for a 20 epochs training (I do not have any more powerful GPU), plus a 5 epoch classifier head for evalutation and reached final accuracy on CIFAR-10: 58.70%. This accuracy is objectively bad, but we have to remember that I did a very small training (30 minutes) and that the main goal 
+I did a small test for a 20 epochs training (I do not have any more powerful GPU), plus a 5 epoch classifier head for evalutation and reached final accuracy on CIFAR-10: **58.70%**. 
+This accuracy is objectively bad, but we have to remember that I did a very small training (30 minutes) and that the main goal 
 
 ![Evolution of VICReg loss](vicreg_loss.png)
 
